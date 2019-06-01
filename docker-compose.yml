@@ -1,0 +1,49 @@
+version: '3.1'
+
+services:
+
+  app:
+    build:
+      context: .
+    container_name: app
+    restart: always
+    environment:
+      POSTGRES_HOST: db
+    ports:
+      - "8000:8000"
+    command: sh /app/entrypoint.sh
+    depends_on:
+      - db
+
+  celery:
+    build:
+      context: .
+    container_name: celery
+    restart: always
+    environment:
+      REDIS_HOST: redis
+      POSTGRES_HOST: db
+    command: celery worker -A ${APP_NAME} -B --loglevel=info -c=4
+    depends_on:
+      - db
+      - redis
+
+  redis:
+    image: "redis:latest"
+    ports:
+      - "${REDIS_PORT}:6379"
+    restart: always
+    volumes:
+      - ./redis-data:/data
+
+  db:
+    image: postgres:latest
+    restart: always
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_DB_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_DB_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB_NAME}
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
