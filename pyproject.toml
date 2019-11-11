@@ -21,6 +21,7 @@ pylint = "^2.3"
 flake8 = "^3.7"
 pylint-django = "^2.0"
 black = {version = "^18.3-alpha.0",allows-prereleases = true}
+ipython = "^7.9.0"
 
 [tool.black]
 line-length = 100

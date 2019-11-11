@@ -1,4 +1,4 @@
-FROM python:3.6-alpine
+FROM python:3.7-alpine
 
 RUN mkdir /install
 WORKDIR /install
@@ -7,14 +7,20 @@ RUN apk add --no-cache --virtual .build-deps \
     gcc \
     python3-dev \
     libc-dev \
-    linux-headers \ 
+    linux-headers \
+    openssl-dev \
     && \
     apk add --no-cache \
     postgresql-dev
 
-COPY requirements.txt /requirements.txt
+RUN pip install -U pip
+RUN pip install --pre poetry
 
-RUN pip install -r /requirements.txt
+RUN poetry config virtualenvs.create false
+
+COPY poetry.lock pyproject.toml /
+
+RUN poetry install --no-dev
 
 RUN apk del --no-cache .build-deps
 
