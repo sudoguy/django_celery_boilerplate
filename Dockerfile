@@ -1,29 +1,55 @@
-FROM python:3.7-alpine
+FROM python:3.8-slim as development_build
 
-RUN mkdir /install
-WORKDIR /install
+ARG ENV="production"
 
-RUN apk add --no-cache --virtual .build-deps \
-    gcc \
+ENV ENV=${ENV} \
+    DEBIAN_FRONTEND=noninteractive \
+    # poetry:
+    POETRY_VERSION=1.0.9 \
+    POETRY_VIRTUALENVS_CREATE=false \
+    POETRY_CACHE_DIR='/var/cache/pypoetry' \
+    # pip:
+    PIP_NO_CACHE_DIR=off \
+    PIP_DISABLE_PIP_VERSION_CHECK=on \
+    PIP_DEFAULT_TIMEOUT=100
+
+# System deps
+RUN apt-get update \
+    && apt-get install --no-install-recommends -y \
     python3-dev \
-    libc-dev \
-    linux-headers \
-    openssl-dev \
-    && \
-    apk add --no-cache \
-    postgresql-dev
-
-RUN pip install -U pip
-RUN pip install --pre poetry
-
-RUN poetry config virtualenvs.create false
-
-COPY poetry.lock pyproject.toml /
-
-RUN poetry install --no-dev
-
-RUN apk del --no-cache .build-deps
-
-COPY . /app
+    build-essential \
+    curl \
+    git \
+    # Cleaning cache:
+    && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/* \
+    # Installing `poetry` package manager:
+    # https://github.com/python-poetry/poetry
+    && pip install "poetry==$POETRY_VERSION"
 
 WORKDIR /app
+# Copy only requirements, to cache them in docker layer
+COPY ./pyproject.toml ./poetry.lock /app/
+
+# Project initialization:
+RUN echo "$ENV" \
+    && poetry --version \
+    # Generating requirements.txt
+    && poetry export --without-hashes -f requirements.txt -o /var/install/requirements.txt \
+    && poetry install \
+    $(if [ "$ENV" = 'production' ]; then echo '--no-dev'; fi) \
+    --no-interaction --no-ansi \
+    # Do not install the root package (the current project)
+    --no-root \
+    # Cleaning poetry installation's cache for production:
+    && if [ "$ENV" = 'production' ]; then rm -rf "$POETRY_CACHE_DIR"; fi
+
+# Setting up proper permissions:
+RUN groupadd -r web && useradd -d /app -r -g web web \
+    && chown web:web -R /app
+
+# Running as non-root user:
+USER web
+
+COPY ./src/ /app
+
+CMD ["uwsgi", "--ini", "/app/uwsgi.ini"]
