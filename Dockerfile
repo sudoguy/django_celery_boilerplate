@@ -20,6 +20,7 @@ RUN apt-get update \
     build-essential \
     curl \
     git \
+    gettext \
     # Cleaning cache:
     && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/* \
     # Installing `poetry` package manager:
@@ -33,8 +34,6 @@ COPY ./pyproject.toml ./poetry.lock /app/
 # Project initialization:
 RUN echo "$ENV" \
     && poetry --version \
-    # Generating requirements.txt
-    && poetry export --without-hashes -f requirements.txt -o /var/install/requirements.txt \
     && poetry install \
     $(if [ "$ENV" = 'production' ]; then echo '--no-dev'; fi) \
     --no-interaction --no-ansi \
@@ -50,6 +49,6 @@ RUN groupadd -r web && useradd -d /app -r -g web web \
 # Running as non-root user:
 USER web
 
-COPY ./src/ /app
+COPY . /app
 
-CMD ["uwsgi", "--ini", "/app/uwsgi.ini"]
+CMD ["sh", "entrypoint.sh"]

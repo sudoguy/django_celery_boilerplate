@@ -9,9 +9,11 @@ license = "MIT"
 python = "^3.7"
 python-dotenv = "^0.14.0"
 psycopg2-binary = "^2.8"
-sentry-sdk = "^0.16.0"
+sentry-sdk = {version = "^0.16.0", extras = ["celery"]}
 django = "^3.0"
 djangorestframework = "^3.11.0"
+celery = {version = "^4.4.6", extras = ["redis"]}
+uwsgi = "^2.0.19"
 
 [tool.poetry.dev-dependencies]
 pylint = "^2.3"
