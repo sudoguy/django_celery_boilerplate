@@ -1,29 +1,54 @@
-FROM python:3.7-alpine
+FROM python:3.8-slim as development_build
 
-RUN mkdir /install
-WORKDIR /install
+ARG ENV="production"
 
-RUN apk add --no-cache --virtual .build-deps \
-    gcc \
+ENV ENV=${ENV} \
+    DEBIAN_FRONTEND=noninteractive \
+    # poetry:
+    POETRY_VERSION=1.0.9 \
+    POETRY_VIRTUALENVS_CREATE=false \
+    POETRY_CACHE_DIR='/var/cache/pypoetry' \
+    # pip:
+    PIP_NO_CACHE_DIR=off \
+    PIP_DISABLE_PIP_VERSION_CHECK=on \
+    PIP_DEFAULT_TIMEOUT=100
+
+# System deps
+RUN apt-get update \
+    && apt-get install --no-install-recommends -y \
     python3-dev \
-    libc-dev \
-    linux-headers \
-    openssl-dev \
-    && \
-    apk add --no-cache \
-    postgresql-dev
+    build-essential \
+    curl \
+    git \
+    gettext \
+    # Cleaning cache:
+    && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/* \
+    # Installing `poetry` package manager:
+    # https://github.com/python-poetry/poetry
+    && pip install "poetry==$POETRY_VERSION"
 
-RUN pip install -U pip
-RUN pip install --pre poetry
+WORKDIR /app
+# Copy only requirements, to cache them in docker layer
+COPY ./pyproject.toml ./poetry.lock /app/
 
-RUN poetry config virtualenvs.create false
+# Project initialization:
+RUN echo "$ENV" \
+    && poetry --version \
+    && poetry install \
+    $(if [ "$ENV" = 'production' ]; then echo '--no-dev'; fi) \
+    --no-interaction --no-ansi \
+    # Do not install the root package (the current project)
+    --no-root \
+    # Cleaning poetry installation's cache for production:
+    && if [ "$ENV" = 'production' ]; then rm -rf "$POETRY_CACHE_DIR"; fi
 
-COPY poetry.lock pyproject.toml /
+# Setting up proper permissions:
+RUN groupadd -r web && useradd -d /app -r -g web web \
+    && chown web:web -R /app
 
-RUN poetry install --no-dev
-
-RUN apk del --no-cache .build-deps
+# Running as non-root user:
+USER web
 
 COPY . /app
 
-WORKDIR /app
+CMD ["sh", "entrypoint.sh"]

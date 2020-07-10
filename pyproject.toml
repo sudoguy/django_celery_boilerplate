@@ -7,20 +7,20 @@ license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.7"
-django = "^2.2"
-djangorestframework = "^3.9"
-python-dotenv = "^0.10.1"
+python-dotenv = "^0.14.0"
 psycopg2-binary = "^2.8"
-uwsgi = "^2.0"
-celery = {version = "^4.3", extras= ["redis"]}
-requests = "^2.21"
-sentry-sdk = "^0.8.0"
+sentry-sdk = {version = "^0.16.0", extras = ["celery"]}
+django = "^3.0"
+djangorestframework = "^3.11.0"
+celery = {version = "^4.4.6", extras = ["redis"]}
+uwsgi = "^2.0.19"
 
 [tool.poetry.dev-dependencies]
 pylint = "^2.3"
 flake8 = "^3.7"
+isort = "^5.0"
 pylint-django = "^2.0"
-black = {version = "^18.3-alpha.0",allows-prereleases = true}
+black = "^19.10b0"
 ipython = "^7.9.0"
 
 [tool.black]
@@ -44,4 +44,3 @@ exclude = '''
 [build-system]
 requires = ["poetry>=0.12"]
 build-backend = "poetry.masonry.api"
-
