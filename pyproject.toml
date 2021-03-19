@@ -11,7 +11,7 @@ python-dotenv = "^0.14.0"
 psycopg2-binary = "^2.8"
 sentry-sdk = {version = "^0.16.0", extras = ["celery"]}
 django = "^3.0"
-djangorestframework = "^3.11.0"
+djangorestframework = "^3.11.2"
 celery = {version = "^4.4.6", extras = ["redis"]}
 uwsgi = "^2.0.19"
 
